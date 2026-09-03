@@ -54,15 +54,50 @@ mojo run <parser>.mojo [file] [--export|--out|-o <path>]
 - **`--export`/`--out`/`-o`** writes the rendered output to a file instead of stdout — see `output/*.txt` for real examples produced this way.
 - PDF extraction is best-effort: real statute/judgment/article PDFs carry running headers, footers, and page-number banners that aren't always fully stripped, so hand-cleaning the extracted text is sometimes necessary.
 
+## Test fixtures — see it actually work
+
+`src/testdata/` holds one real, unmodified PDF per parser (the same files the integration tests and benchmarks use), plus a set of hand-written `.txt` fixtures — organized in the same three type folders — that exercise the grammar features described above without needing `pdftotext`. None of the `.txt` fixtures are transcripts of real documents; they're modeled on the real formatting conventions, the same way each parser's own built-in sample is.
+
+```
+src/testdata/legislation/     access_to_information_act.pdf (real)  + 7 .txt fixtures
+src/testdata/jurisprudence/   poonian_v_bc_securities_2024scc28.pdf (real) + 7 .txt fixtures
+src/testdata/doctrine/        mlj_readability_deficits.pdf (real)  + 6 .txt fixtures
+```
+
+Each folder's fixtures cover a different corner of that parser's grammar — deep `(a)(i)(ii)` nesting, fractional section numbers, stacked Part/Division headings, front-matter-heavy cover pages, roman/letter/plain heading mixes, sequential footnotes, bilingual (French-accented) body text, and multiple documents concatenated in one file with no separator. See each folder's filenames for what each one is targeting.
+
+There are two ways to run the whole folder, at two different levels:
+
+**From the shell, for a quick look at real output.** `scripts/dev.sh smoke` calls each parser once per file and reports pass/fail per file:
+
+```bash
+scripts/dev.sh smoke                 # all three parsers against all their fixtures
+scripts/dev.sh smoke jurisprudence   # just one
+```
+
+(or the "Smoke: ..." tasks from VS Code's Task Runner). This is the fastest way to actually watch the parser work end-to-end on 20+ documents, and to eyeball one file's rendered output (`scripts/dev.sh parse <parser> <path>`) rather than trusting the unit test assertions alone.
+
+**As part of the automated test suite, for CI/regression coverage.** Each `src/tests/integration/test_<parser>_integration.mojo` file has, alongside its single deeply-asserted real-PDF test, a `test_all_testdata_fixtures_parse` test that lists `src/testdata/<parser>/` at run time (via `std.os.listdir`) and asserts every file in it parses without raising — collecting failures with their error messages rather than stopping at the first one. It runs wherever the rest of the suite does:
+
+```bash
+scripts/dev.sh test integration            # includes it for all three parsers
+pixi run test-legislation-integration      # or just one parser's integration suite
+```
+
+Because it lists the folder rather than naming files, dropping a new fixture into `src/testdata/<parser>/` gets it covered automatically — no test code changes needed.
+
 ## Project layout
 
 ```
 src/
   parsers/         The three parsers (also runnable directly)
   tests/unit/       Fast, no-I/O tests against hand-written fixtures
-  tests/integration/  Tests that parse the real PDFs in src/testdata/
+  tests/integration/  Tests that parse the real PDFs in src/testdata/<type>/
   benchmarks/       Timing benchmarks for each parser
-  testdata/         Real sample PDFs used by the integration tests/benchmarks
+  testdata/
+    legislation/    Sample Acts to parse — 1 real PDF + 7 synthetic .txt fixtures
+    jurisprudence/  Sample judgments to parse — 1 real PDF + 7 synthetic .txt fixtures
+    doctrine/       Sample articles to parse — 1 real PDF + 6 synthetic .txt fixtures
 output/             Example parser output (generated via --export)
 scripts/dev.sh      Friendly CLI wrapper around the pixi tasks below
 .vscode/            VS Code tasks for the same operations, via Command Palette → Run Task
@@ -70,22 +105,48 @@ scripts/dev.sh      Friendly CLI wrapper around the pixi tasks below
 
 ## Getting started
 
-Requires [`pixi`](https://pixi.sh) and, for PDF input, `pdftotext` (from `poppler-utils`) on your `PATH`.
+### 1. Install Mojo (via `pixi`)
+
+This project doesn't need a separate Mojo install: [`pixi`](https://pixi.sh) is the package manager, and `pixi.toml`'s `[dependencies]` pulls the `mojo` compiler itself from Modular's conda channel — installing the project *is* installing Mojo, pinned to the version this repo was built against.
+
+1. Install `pixi` itself, if you don't already have it:
+   ```bash
+   curl -fsSL https://pixi.sh/install.sh | sh
+   ```
+   (see [pixi.sh](https://pixi.sh) for other platforms/methods.) Restart your shell, or source your shell's rc file, so `pixi` is on `PATH`.
+2. From the project root, install the environment (this downloads Mojo + the MAX platform into a local, gitignored `.pixi/` directory — nothing is installed system-wide):
+   ```bash
+   pixi install
+   ```
+3. Verify it worked:
+   ```bash
+   pixi run mojo --version
+   ```
+
+For PDF input specifically (all three parsers accept `.pdf` or `.txt`), you'll also need `pdftotext` — from `poppler-utils` — on your system `PATH`:
 
 ```bash
-pixi install
+# Debian/Ubuntu
+sudo apt install poppler-utils
+# macOS
+brew install poppler
 ```
 
-### From a terminal
+`.txt` input (including every synthetic fixture under `src/testdata/`) needs no extra dependency.
+
+> **If you ever move or rename this project folder**, delete `.pixi/` and re-run `pixi install`: the environment caches some absolute paths at install time, and a stale cache after a move surfaces as `mojo` failing to find its own standard library (`unable to locate module 'std'`) or compiler runtime.
+
+### 2. Run something
 
 ```bash
-scripts/dev.sh parse doctrine src/testdata/mlj_readability_deficits.pdf
+scripts/dev.sh parse doctrine src/testdata/doctrine/01_basic_footnotes.txt
 scripts/dev.sh test unit doctrine       # one parser's unit tests
 scripts/dev.sh test unit               # all three parsers' unit tests
 scripts/dev.sh test integration        # real-PDF integration tests
 scripts/dev.sh test all                # everything
 scripts/dev.sh bench legislation       # one parser's benchmark
 scripts/dev.sh bench                   # all three benchmarks
+scripts/dev.sh smoke                   # parse every testdata fixture, report pass/fail
 scripts/dev.sh list                    # show the underlying pixi tasks
 ```
 
@@ -93,7 +154,7 @@ Or call the underlying `pixi` tasks directly — `pixi task list` shows all of t
 
 ### From VS Code
 
-Open the folder, install the recommended [Mojo extension](https://marketplace.visualstudio.com/items?itemName=modular-mojotools.vscode-mojo) when prompted, then **Command Palette → "Tasks: Run Task"** for the same list (test/bench per parser, or "Test: all"). The "Parse" tasks prompt for a file path, defaulting to the matching sample in `src/testdata/`.
+Open the folder, install the recommended [Mojo extension](https://marketplace.visualstudio.com/items?itemName=modular-mojotools.vscode-mojo) when prompted, then **Command Palette → "Tasks: Run Task"** for the same list (test/bench/smoke per parser, or "Test: all"). The "Parse" tasks prompt for a file path, defaulting to the matching sample in `src/testdata/<type>/`.
 
 ## What could be done later
 

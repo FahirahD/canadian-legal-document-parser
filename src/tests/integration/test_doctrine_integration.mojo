@@ -1,10 +1,11 @@
 import doctrine_parser
+from std.os import listdir
 from std.testing import assert_equal, assert_true, TestSuite
 
 # Integration test against a real, unmodified document -- not a
 # hand-written sample. Fixture:
 #
-#   src/testdata/mlj_readability_deficits.pdf
+#   src/testdata/doctrine/mlj_readability_deficits.pdf
 #   Mike Madden, "Failure to Adapt: Readability Deficits in Canadian
 #   Court Decisions Involving Parties with Unique Reading Needs"
 #   (2026) 71:2 McGill LJ 605
@@ -46,7 +47,8 @@ from std.testing import assert_equal, assert_true, TestSuite
 #   pixi run mojo run src/test_doctrine_integration.mojo
 
 
-comptime FIXTURE = "src/testdata/mlj_readability_deficits.pdf"
+comptime FIXTURE = "src/testdata/doctrine/mlj_readability_deficits.pdf"
+comptime FIXTURES_DIR = "src/testdata/doctrine"
 
 
 def test_real_mlj_article_parses() raises:
@@ -100,6 +102,26 @@ def test_real_mlj_article_parses() raises:
     assert_true(items[8].isa[doctrine_parser.Prose]())
     var resume = items[8][doctrine_parser.Prose].copy()
     assert_true(resume.text.__contains__("lisibilité"))
+
+
+# Folder-level smoke coverage, distinct from the single-fixture ground-truth
+# assertions above: every file in src/testdata/doctrine/ (the real MLJ
+# abstract PDF plus the hand-written .txt fixtures exercising individual
+# grammar features -- lettered subheadings, implicit titles, sequential
+# footnotes, concatenated pieces, bilingual text, ...) must parse without
+# raising. Add a new fixture to that folder and it is covered here
+# automatically, no test code changes needed.
+def test_all_testdata_fixtures_parse() raises:
+    var failures: List[String] = []
+    for name in listdir(FIXTURES_DIR):
+        var path = FIXTURES_DIR + "/" + name
+        try:
+            var content = doctrine_parser.read_document_text(path)
+            var cur = doctrine_parser.Cursor(content^)
+            _ = cur.parse_document()
+        except e:
+            failures.append(name + ": " + String(e))
+    assert_true(len(failures) == 0, "fixtures failed to parse: " + String(failures))
 
 
 def main() raises:

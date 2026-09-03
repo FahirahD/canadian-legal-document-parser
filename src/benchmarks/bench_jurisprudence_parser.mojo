@@ -9,7 +9,7 @@ from std.testing import assert_equal
 #   pixi run mojo run src/bench_jurisprudence_parser.mojo
 
 
-comptime REAL_FIXTURE = "src/testdata/poonian_v_bc_securities_2024scc28.pdf"
+comptime REAL_FIXTURE = "src/testdata/jurisprudence/poonian_v_bc_securities_2024scc28.pdf"
 
 
 def format_duration(ns: Int) -> String:

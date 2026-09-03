@@ -1,0 +1,15 @@
+TITLE: Reasonable Limits: Proportionality Analysis Under Section 1
+AUTHOR: A. Whitfield
+SOURCE: (2023) 61 Osgoode Hall L.J. 112
+YEAR: 2023
+
+I. Introduction
+The Oakes framework remains the dominant analytical tool for assessing whether a Charter infringement is a reasonable limit prescribed by law.1 Since its adoption, courts have refined the minimal impairment branch considerably.2
+
+II. The Minimal Impairment Branch
+Minimal impairment does not require the legislature to have chosen the least intrusive means available, only a means that falls within a range of reasonable alternatives.3 This deferential formulation has attracted sustained academic criticism.4
+
+1. R. v. Oakes, [1986] 1 S.C.R. 103.
+2. RJR-MacDonald Inc. v. Canada (Attorney General), [1995] 3 S.C.R. 199.
+3. Alberta v. Hutterian Brethren of Wilson Colony, 2009 SCC 37.
+4. See generally P. Hogg, Constitutional Law of Canada, 5th ed.

@@ -1,0 +1,14 @@
+STYLE OF CAUSE: R. v. Chen
+CITATION: 2022 SCC 14
+COURT: Supreme Court of Canada
+DOCKET: 39456
+DATE: 2022-05-06
+
+I. OVERVIEW
+[1] This appeal concerns the proper interpretation of the reasonable expectation of privacy under section 8 of the Charter.
+[2] The appellant was arrested following a warrantless search of his backpack at a public transit station.
+
+II. ANALYSIS
+[3] The Crown bears the burden of establishing that a warrantless search was reasonable in the circumstances.
+[4] On the facts found by the trial judge, the search was not reasonable and the evidence obtained should have been excluded.
+[5] The appeal is allowed, the conviction is set aside, and an acquittal is entered.

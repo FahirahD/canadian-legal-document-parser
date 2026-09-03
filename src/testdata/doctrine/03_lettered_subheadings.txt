@@ -1,0 +1,20 @@
+TITLE: Duty of Care in Cross-Border Data Breach Litigation
+AUTHOR: R. Falconer
+SOURCE: (2024) 47 Dalhousie L.J. 205
+YEAR: 2024
+
+I. Introduction
+Canadian courts have only recently begun to grapple with the duty of care owed by organizations that store personal data across multiple jurisdictions.1
+
+II. Elements of the Duty
+A. Proximity
+Proximity in the data breach context turns on the relationship between the data custodian and the individuals whose information is at risk.2
+B. Foreseeability
+Foreseeability is generally uncontroversial once a custodian is aware that it holds sensitive personal information.3
+
+III. Conclusion
+A coherent duty of care framework for data breaches would bring welcome predictability to this developing area of Canadian tort law.
+
+1. See generally the discussion in Broutzas v Rouge Valley Health System, 2018 ONSC 6315.
+2. Ibid at para 65.
+3. Evans v The Bank of Nova Scotia, 2014 ONSC 2135.

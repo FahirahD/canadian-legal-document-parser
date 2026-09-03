@@ -1,0 +1,14 @@
+Failure to Adapt: Accessibility Standards in Provincial Building Codes
+
+ABSTRACT
+Provincial building codes across Canada have been slow to incorporate universal design principles despite two decades of accessibility legislation.1 This comment surveys the gap between legislative intent and code-level implementation.2
+
+DISCUSSION
+The Accessible Canada Act sets ambitious national goals but does not itself amend the building codes that govern most construction decisions.3 Provinces retain near-total discretion over the technical standards that determine whether a building is genuinely accessible.
+
+CONCLUSION
+Meaningful accessibility reform will require coordinated amendments to provincial building codes, not federal aspirational language alone.
+
+1. Accessible Canada Act, SC 2019, c 10.
+2. See CSA Group, B651-18: Accessible Design for the Built Environment.
+3. Ibid.

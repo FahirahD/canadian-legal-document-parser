@@ -1,10 +1,11 @@
 import legislation_parser
+from std.os import listdir
 from std.testing import assert_equal, assert_true, TestSuite
 
 # Integration test against a real, unmodified statute PDF -- not a
 # hand-written sample. Fixture:
 #
-#   src/testdata/access_to_information_act.pdf
+#   src/testdata/legislation/access_to_information_act.pdf
 #   Access to Information Act, R.S.C., 1985, c. A-1 (current consolidation)
 #   Downloaded directly from laws-lois.justice.gc.ca, 118 pages.
 #
@@ -63,7 +64,8 @@ from std.testing import assert_equal, assert_true, TestSuite
 #   pixi run mojo run src/test_legislation_integration.mojo
 
 
-comptime FIXTURE = "src/testdata/access_to_information_act.pdf"
+comptime FIXTURE = "src/testdata/legislation/access_to_information_act.pdf"
+comptime FIXTURES_DIR = "src/testdata/legislation"
 
 
 def test_real_act_pdf_parses() raises:
@@ -103,6 +105,26 @@ def test_real_act_pdf_parses() raises:
     # corrupted the real section list.
     for s in act.sections:
         assert_true(not s.text.__contains__("Stablecoin Act"))
+
+
+# Folder-level smoke coverage, distinct from the single-fixture ground-truth
+# assertions above: every file in src/testdata/legislation/ (the real Act
+# PDF plus the hand-written .txt fixtures exercising individual grammar
+# features -- deep subparagraph nesting, fractional section numbers,
+# stacked headings, bilingual text, ...) must parse without raising. Add a
+# new fixture to that folder and it is covered here automatically, no test
+# code changes needed.
+def test_all_testdata_fixtures_parse() raises:
+    var failures: List[String] = []
+    for name in listdir(FIXTURES_DIR):
+        var path = FIXTURES_DIR + "/" + name
+        try:
+            var content = legislation_parser.read_document_text(path)
+            var cur = legislation_parser.Cursor(content^)
+            _ = cur.parse_act()
+        except e:
+            failures.append(name + ": " + String(e))
+    assert_true(len(failures) == 0, "fixtures failed to parse: " + String(failures))
 
 
 def main() raises:

@@ -1,0 +1,26 @@
+TITLE: Algorithmic Decision-Making and Procedural Fairness
+AUTHOR: S. Beaumont
+SOURCE: (2023) 52 Fed. L. Rev. 77
+YEAR: 2023
+
+I. Introduction
+Administrative decision-makers increasingly rely on automated tools to triage or resolve individual cases.1 The duty of procedural fairness was not designed with algorithmic decision-making in mind.2
+
+II. Conclusion
+Existing fairness doctrine can accommodate algorithmic tools only if decision-makers remain able to explain and justify the outcomes those tools produce.
+
+1. Directive on Automated Decision-Making, Treasury Board of Canada Secretariat.
+2. Baker v Canada (Minister of Citizenship and Immigration), [1999] 2 SCR 817.
+
+TITRE: L'intelligence artificielle et l'obligation de motiver les décisions administratives
+AUTEUR: F. Lachance
+SOURCE: (2023) 65 C de D 419
+ANNÉE: 2023
+
+I. Introduction
+L'utilisation croissante d'outils automatisés par les décideurs administratifs soulève des questions inédites quant à l'obligation de motiver leurs décisions.1
+
+CONCLUSION
+Le cadre juridique actuel devra être adapté pour tenir compte des particularités des systèmes décisionnels automatisés.
+
+1. Baker c Canada (Ministre de la Citoyenneté et de l'Immigration), [1999] 2 RCS 817.

@@ -8,6 +8,7 @@
 #   scripts/dev.sh parse <legislation|jurisprudence|doctrine> [file...]
 #   scripts/dev.sh test [unit|integration|all] [legislation|jurisprudence|doctrine]
 #   scripts/dev.sh bench [legislation|jurisprudence|doctrine]
+#   scripts/dev.sh smoke [legislation|jurisprudence|doctrine]
 #   scripts/dev.sh list
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -23,14 +24,18 @@ Commands:
   test [scope] [parser]           Run tests. scope: unit (default) | integration | all
                                    parser is optional; omit to run all three parsers
   bench [parser]                  Run benchmarks; omit parser to run all three
+  smoke [parser]                  Parse every file in src/testdata/<parser>/ and report
+                                   pass/fail per file; omit parser to check all three
   list                            List the underlying pixi tasks this script wraps
 
 Examples:
-  scripts/dev.sh parse doctrine src/testdata/mlj_readability_deficits.pdf
+  scripts/dev.sh parse doctrine src/testdata/doctrine/01_basic_footnotes.txt
   scripts/dev.sh test unit doctrine
   scripts/dev.sh test integration
   scripts/dev.sh test all
   scripts/dev.sh bench legislation
+  scripts/dev.sh smoke
+  scripts/dev.sh smoke jurisprudence
 EOF
 }
 
@@ -97,6 +102,53 @@ cmd_bench() {
   fi
 }
 
+cmd_smoke() {
+  local parser="${1:-}"
+  local parsers_to_run=("${PARSERS[@]}")
+  if [[ -n "$parser" ]]; then
+    require_parser "$parser"
+    parsers_to_run=("$parser")
+  fi
+
+  local tmp
+  tmp="$(mktemp)"
+
+  local total=0
+  local passed=0
+  local failures=()
+
+  for p in "${parsers_to_run[@]}"; do
+    local dir="src/testdata/$p"
+    if [[ ! -d "$dir" ]]; then
+      echo "warning: no fixtures directory for '$p' ($dir)" >&2
+      continue
+    fi
+    echo "== $p =="
+    for f in "$dir"/*; do
+      [[ -f "$f" ]] || continue
+      total=$((total + 1))
+      if pixi run "parse-${p}" "$f" >"$tmp" 2>&1; then
+        echo "  OK    $f"
+        passed=$((passed + 1))
+      else
+        echo "  FAIL  $f"
+        failures+=("$f")
+        sed 's/^/        /' "$tmp"
+      fi
+    done
+  done
+
+  rm -f "$tmp"
+
+  echo
+  echo "$passed/$total fixtures parsed successfully"
+  if [[ ${#failures[@]} -gt 0 ]]; then
+    echo "failed:"
+    printf '  %s\n' "${failures[@]}"
+    exit 1
+  fi
+}
+
 cmd_list() {
   pixi task list
 }
@@ -110,6 +162,7 @@ main() {
     parse) cmd_parse "$@" ;;
     test) cmd_test "$@" ;;
     bench) cmd_bench "$@" ;;
+    smoke) cmd_smoke "$@" ;;
     list) cmd_list ;;
     -h|--help|help) usage ;;
     *)

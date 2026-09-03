@@ -12,7 +12,7 @@ from std.testing import assert_equal
 #   pixi run mojo run src/bench_doctrine_parser.mojo
 
 
-comptime REAL_FIXTURE = "src/testdata/mlj_readability_deficits.pdf"
+comptime REAL_FIXTURE = "src/testdata/doctrine/mlj_readability_deficits.pdf"
 
 
 def format_duration(ns: Int) -> String:

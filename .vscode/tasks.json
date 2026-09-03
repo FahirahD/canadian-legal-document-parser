@@ -82,6 +82,38 @@
       "problemMatcher": []
     },
     {
+      "label": "Smoke: all (parse every testdata fixture)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["smoke"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Smoke: legislation",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["smoke", "legislation"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Smoke: jurisprudence",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["smoke", "jurisprudence"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Smoke: doctrine",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["smoke", "doctrine"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
       "label": "Parse: legislation (prompts for file)",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/dev.sh",
@@ -111,19 +143,19 @@
       "id": "legislationFile",
       "type": "promptString",
       "description": "Path to a legislation document to parse",
-      "default": "src/testdata/access_to_information_act.pdf"
+      "default": "src/testdata/legislation/access_to_information_act.pdf"
     },
     {
       "id": "jurisprudenceFile",
       "type": "promptString",
       "description": "Path to a jurisprudence document to parse",
-      "default": "src/testdata/poonian_v_bc_securities_2024scc28.pdf"
+      "default": "src/testdata/jurisprudence/poonian_v_bc_securities_2024scc28.pdf"
     },
     {
       "id": "doctrineFile",
       "type": "promptString",
       "description": "Path to a doctrine document to parse",
-      "default": "src/testdata/mlj_readability_deficits.pdf"
+      "default": "src/testdata/doctrine/mlj_readability_deficits.pdf"
     }
   ]
 }

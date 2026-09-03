@@ -1,0 +1,20 @@
+STYLE OF CAUSE: Nguyen v. Ontario (Attorney General)
+CITATION: 2023 ONCA 210
+COURT: Court of Appeal for Ontario
+DOCKET: C69123
+DATE: 2023-04-11
+
+I. INTRODUCTION
+[1] The appellant challenges the constitutionality of section 12 of the impugned regulation.
+
+II. ANALYSIS
+A. Standard of Review
+[2] Questions involving the interpretation of the Charter are reviewed on a standard of correctness.
+B. Section 12 of the Regulation
+[3] Section 12 imposes a mandatory minimum condition that applies without regard to individual circumstances.
+[4] Such a provision is capable of producing grossly disproportionate outcomes in a reasonable hypothetical case.
+C. Section 1 Justification
+[5] The Crown did not lead sufficient evidence to justify the infringement as a reasonable limit under section 1.
+
+III. DISPOSITION
+[6] The appeal is allowed and the regulation is declared of no force or effect.

@@ -1,0 +1,20 @@
+CHAPTER: R.S.C., 1985, c. C-46
+TITLE: Judicial Review Procedures Act
+
+APPLICATION FOR REVIEW
+Marginal note: Application for judicial review
+5 (1) An application for judicial review may be made to the Federal Court by the Attorney General of Canada or by anyone directly affected by the matter in respect of which relief is sought.
+Marginal note: Time limitation
+(2) An application for judicial review in respect of a decision or an order of a federal board, commission or other tribunal shall be made within 30 days after the time the decision or order was first communicated.
+Marginal note: Extension of time
+(3) The Federal Court may, in its discretion, extend the time limit set out in subsection (2) if it is satisfied that there are reasonable grounds for doing so.
+
+POWERS OF THE COURT
+Marginal note: Remedies
+6 (1) On an application for judicial review, the Federal Court may grant relief in the nature of certiorari, mandamus, prohibition, quo warranto or a declaration.
+Marginal note: Grounds of review
+(2) The Federal Court may grant relief if it is satisfied that the federal board, commission or other tribunal
+(a) acted without jurisdiction or refused to exercise its jurisdiction;
+(b) failed to observe a principle of natural justice or procedural fairness;
+(c) erred in law in making a decision, whether or not the error appears on the face of the record; or
+(d) based its decision on an erroneous finding of fact made in a perverse or capricious manner.

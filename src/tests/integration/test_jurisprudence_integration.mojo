@@ -1,10 +1,11 @@
 import jurisprudence_parser
+from std.os import listdir
 from std.testing import assert_equal, assert_true, TestSuite
 
 # Integration test against a real, unmodified court filing -- not a
 # hand-written sample. Fixture:
 #
-#   src/testdata/poonian_v_bc_securities_2024scc28.pdf
+#   src/testdata/jurisprudence/poonian_v_bc_securities_2024scc28.pdf
 #   Poonian v. British Columbia (Securities Commission), 2024 SCC 28
 #   Downloaded from the Supreme Court of Canada's own decisions site
 #   (decisions.scc-csc.ca), 82 pages, majority + partial dissent.
@@ -25,7 +26,8 @@ from std.testing import assert_equal, assert_true, TestSuite
 #   pixi run mojo run src/test_jurisprudence_integration.mojo
 
 
-comptime FIXTURE = "src/testdata/poonian_v_bc_securities_2024scc28.pdf"
+comptime FIXTURE = "src/testdata/jurisprudence/poonian_v_bc_securities_2024scc28.pdf"
+comptime FIXTURES_DIR = "src/testdata/jurisprudence"
 
 
 def test_real_scc_judgment_parses() raises:
@@ -96,6 +98,25 @@ def test_real_scc_judgment_parses() raises:
         assert_true(not text.__contains__("Nixon"))
         assert_true(not text.__contains__("C.B.R."))
         assert_true(not text.__contains__("Sarra"))
+
+
+# Folder-level smoke coverage, distinct from the single-fixture ground-truth
+# assertions above: every file in src/testdata/jurisprudence/ (the real SCC
+# judgment PDF plus the hand-written .txt fixtures exercising individual
+# grammar features -- lettered subheadings, front-matter-heavy cover pages,
+# concatenated judgments, bilingual text, ...) must parse without raising.
+# Add a new fixture to that folder and it is covered here automatically.
+def test_all_testdata_fixtures_parse() raises:
+    var failures: List[String] = []
+    for name in listdir(FIXTURES_DIR):
+        var path = FIXTURES_DIR + "/" + name
+        try:
+            var content = jurisprudence_parser.read_document_text(path)
+            var cur = jurisprudence_parser.Cursor(content^)
+            _ = cur.parse_document()
+        except e:
+            failures.append(name + ": " + String(e))
+    assert_true(len(failures) == 0, "fixtures failed to parse: " + String(failures))
 
 
 def main() raises:
