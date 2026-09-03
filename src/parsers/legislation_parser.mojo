@@ -1,5 +1,7 @@
-from std.sys import argv
+from std.sys import argv, exit
 from std.python import Python
+from std.os import listdir
+from std.time import perf_counter_ns
 
 # =============================================================================
 # A PEG grammar for (a useful subset of) Canadian federal statute text.
@@ -831,10 +833,56 @@ def read_document_text(path: String) raises -> String:
         raise Error("unsupported document format for '" + path + "' -- supported: .pdf, .txt")
 
 
+# One `mojo run` per folder rather than one per file (as `scripts/dev.sh
+# smoke` used to shell out to): timing each file with `perf_counter_ns`
+# inside a single already-running process isolates real read+parse cost
+# from Mojo's per-invocation compile/startup overhead, which otherwise
+# dominates and swamps the signal for fixtures this small.
+def run_smoke(dir_path: String) raises:
+    var total = 0
+    var passed = 0
+    var total_ns = 0
+    var failures: List[String] = []
+    print("== " + dir_path + " ==")
+    for name in listdir(dir_path):
+        var path = dir_path + "/" + name
+        total += 1
+        var start = perf_counter_ns()
+        try:
+            var content = read_document_text(path)
+            var cur = Cursor(content^)
+            _ = cur.parse_act()
+            var elapsed_ns = perf_counter_ns() - start
+            total_ns += elapsed_ns
+            print("  OK    " + format_ms(elapsed_ns) + "  " + path)
+            passed += 1
+        except e:
+            var elapsed_ns = perf_counter_ns() - start
+            total_ns += elapsed_ns
+            print("  FAIL  " + format_ms(elapsed_ns) + "  " + path)
+            print("        " + String(e))
+            failures.append(path)
+
+    print("")
+    print(String(passed) + "/" + String(total) + " fixtures parsed successfully")
+    if total > 0:
+        print(
+            "total time: " + format_ms(total_ns) + " across " + String(total)
+            + " file(s), avg " + format_ms(total_ns // total) + "/file"
+        )
+    if len(failures) > 0:
+        exit(1)
+
+
+def format_ms(ns: Int) -> String:
+    return String(Float64(ns) / 1_000_000.0) + " ms"
+
+
 def main() raises:
     var args = argv()
     var path = String("")
     var export_path = String("")
+    var smoke_dir = String("")
     var i = 1
     while i < len(args):
         var a = String(args[i])
@@ -845,9 +893,18 @@ def main() raises:
             if i >= len(args):
                 raise Error(a + " requires a file path argument")
             export_path = String(args[i])
+        elif a == "--smoke":
+            i += 1
+            if i >= len(args):
+                raise Error(a + " requires a directory path argument")
+            smoke_dir = String(args[i])
         else:
             path = a
         i += 1
+
+    if smoke_dir.byte_length() > 0:
+        run_smoke(smoke_dir)
+        return
 
     var content: String
     if path.byte_length() > 0:

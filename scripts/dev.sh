@@ -5,6 +5,7 @@
 # VS Code (see .vscode/tasks.json, which just calls this script).
 #
 # Usage:
+#   scripts/dev.sh build [legislation|jurisprudence|doctrine]
 #   scripts/dev.sh parse <legislation|jurisprudence|doctrine> [file...]
 #   scripts/dev.sh test [unit|integration|all] [legislation|jurisprudence|doctrine]
 #   scripts/dev.sh bench [legislation|jurisprudence|doctrine]
@@ -20,15 +21,20 @@ usage() {
 Usage: scripts/dev.sh <command> [args]
 
 Commands:
+  build [parser]                  Compile parser + benchmark binaries into bin/ (gitignored);
+                                   omit parser to build all three. parse/bench/smoke below
+                                   trigger this automatically and skip it once bin/ is current
+                                   (see pixi.toml's build-* task inputs/outputs)
   parse <parser> [file...]        Run a parser (legislation | jurisprudence | doctrine)
   test [scope] [parser]           Run tests. scope: unit (default) | integration | all
                                    parser is optional; omit to run all three parsers
   bench [parser]                  Run benchmarks; omit parser to run all three
   smoke [parser]                  Parse every file in src/testdata/<parser>/ and report
-                                   pass/fail per file; omit parser to check all three
+                                   pass/fail + timing per file; omit parser to check all three
   list                            List the underlying pixi tasks this script wraps
 
 Examples:
+  scripts/dev.sh build
   scripts/dev.sh parse doctrine src/testdata/doctrine/01_basic_footnotes.txt
   scripts/dev.sh test unit doctrine
   scripts/dev.sh test integration
@@ -52,6 +58,17 @@ require_parser() {
   if ! is_parser "$p"; then
     echo "error: unknown parser '$p' (expected one of: ${PARSERS[*]})" >&2
     exit 1
+  fi
+}
+
+cmd_build() {
+  local parser="${1:-}"
+  if [[ -n "$parser" ]]; then
+    require_parser "$parser"
+    pixi run "build-${parser}"
+    pixi run "build-bench-${parser}"
+  else
+    pixi run build
   fi
 }
 
@@ -94,11 +111,32 @@ cmd_test() {
 
 cmd_bench() {
   local parser="${1:-}"
+  local parsers_to_run=("${PARSERS[@]}")
   if [[ -n "$parser" ]]; then
     require_parser "$parser"
-    pixi run "bench-${parser}"
-  else
-    pixi run bench
+    parsers_to_run=("$parser")
+  fi
+
+  # Each bench-<parser> run already prints its own "TOTAL: N benchmark(s),
+  # <duration> wall time" line (in-process, so it excludes mojo's
+  # compile/startup cost -- see run_smoke() in the parsers for the same
+  # reasoning). When running more than one parser here, also report a
+  # shell-level grand total across all of them, which *does* include that
+  # per-invocation compile/startup cost, since that's the real wall time
+  # of running `scripts/dev.sh bench`.
+  local grand_start grand_ms
+  grand_start=$(date +%s%N)
+
+  for p in "${parsers_to_run[@]}"; do
+    echo "== bench: $p =="
+    pixi run "bench-${p}"
+    echo
+  done
+
+  if [[ ${#parsers_to_run[@]} -gt 1 ]]; then
+    grand_ms=$(( ($(date +%s%N) - grand_start) / 1000000 ))
+    printf 'GRAND TOTAL: %d parser(s) benchmarked, %d.%03ds wall time (includes mojo compile/startup per parser)\n' \
+      "${#parsers_to_run[@]}" $((grand_ms / 1000)) $((grand_ms % 1000))
   fi
 }
 
@@ -110,43 +148,23 @@ cmd_smoke() {
     parsers_to_run=("$parser")
   fi
 
-  local tmp
-  tmp="$(mktemp)"
-
-  local total=0
-  local passed=0
-  local failures=()
-
+  # Each parser's own `--smoke <dir>` mode (see run_smoke() in the parser
+  # .mojo files) loops over the folder and times each file with
+  # perf_counter_ns *inside* one already-running process, so the reported
+  # per-file times are real read+parse cost, not `mojo run`'s per-invocation
+  # compile/startup overhead (which used to dominate when this shelled out
+  # to `pixi run parse-<parser> <file>` once per file).
+  local failed=0
   for p in "${parsers_to_run[@]}"; do
     local dir="src/testdata/$p"
     if [[ ! -d "$dir" ]]; then
       echo "warning: no fixtures directory for '$p' ($dir)" >&2
       continue
     fi
-    echo "== $p =="
-    for f in "$dir"/*; do
-      [[ -f "$f" ]] || continue
-      total=$((total + 1))
-      if pixi run "parse-${p}" "$f" >"$tmp" 2>&1; then
-        echo "  OK    $f"
-        passed=$((passed + 1))
-      else
-        echo "  FAIL  $f"
-        failures+=("$f")
-        sed 's/^/        /' "$tmp"
-      fi
-    done
+    pixi run "smoke-${p}" || failed=1
   done
 
-  rm -f "$tmp"
-
-  echo
-  echo "$passed/$total fixtures parsed successfully"
-  if [[ ${#failures[@]} -gt 0 ]]; then
-    echo "failed:"
-    printf '  %s\n' "${failures[@]}"
-    exit 1
-  fi
+  exit "$failed"
 }
 
 cmd_list() {
@@ -159,6 +177,7 @@ main() {
   shift
 
   case "$command" in
+    build) cmd_build "$@" ;;
     parse) cmd_parse "$@" ;;
     test) cmd_test "$@" ;;
     bench) cmd_bench "$@" ;;

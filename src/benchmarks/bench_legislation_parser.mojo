@@ -95,8 +95,17 @@ def bench_scaling(num_sections: Int, iterations: Int) raises:
 
 
 def main() raises:
+    var suite_start = perf_counter_ns()
+    var count = 0
     bench_sample_act(500)
+    count += 1
     bench_scaling(50, 200)
+    count += 1
     bench_scaling(200, 100)
+    count += 1
     bench_scaling(800, 25)
+    count += 1
     bench_scaling(3200, 10)
+    count += 1
+    var suite_ns = perf_counter_ns() - suite_start
+    print("TOTAL: " + String(count) + " benchmark(s), " + format_duration(suite_ns) + " wall time")

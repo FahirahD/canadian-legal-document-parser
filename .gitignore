@@ -4,3 +4,6 @@
 
 # generated parser output
 output/
+
+# compiled binaries (mojo build), see pixi.toml's build-* tasks
+bin/

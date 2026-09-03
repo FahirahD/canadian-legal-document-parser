@@ -1,0 +1,53 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Mojo: run current file",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pixi run mojo run ${relativeFile}",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Parse: legislation (prompts for file)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pixi run mojo run src/parsers/legislation_parser.mojo ${input:legislationFile}",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Parse: jurisprudence (prompts for file)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pixi run mojo run src/parsers/jurisprudence_parser.mojo ${input:jurisprudenceFile}",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Parse: doctrine (prompts for file)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pixi run mojo run src/parsers/doctrine_parser.mojo ${input:doctrineFile}",
+      "cwd": "${workspaceFolder}"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "legislationFile",
+      "type": "promptString",
+      "description": "Path to a legislation document to parse",
+      "default": "src/testdata/legislation/access_to_information_act.pdf"
+    },
+    {
+      "id": "jurisprudenceFile",
+      "type": "promptString",
+      "description": "Path to a jurisprudence document to parse",
+      "default": "src/testdata/jurisprudence/poonian_v_bc_securities_2024scc28.pdf"
+    },
+    {
+      "id": "doctrineFile",
+      "type": "promptString",
+      "description": "Path to a doctrine document to parse",
+      "default": "src/testdata/doctrine/mlj_readability_deficits.pdf"
+    }
+  ]
+}

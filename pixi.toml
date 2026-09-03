@@ -6,9 +6,65 @@ platforms = ["linux-64"]
 version = "0.1.0"
 
 [tasks]
-parse-legislation = "mojo run src/parsers/legislation_parser.mojo"
-parse-jurisprudence = "mojo run src/parsers/jurisprudence_parser.mojo"
-parse-doctrine = "mojo run src/parsers/doctrine_parser.mojo"
+# `mojo run` recompiles the whole file from source on every single
+# invocation (no persistent compile cache) -- for a parser this size that's
+# ~13-16s of pure overhead before a single byte gets parsed. `mojo build`
+# instead compiles once to a real executable in bin/ (gitignored), and the
+# `inputs`/`outputs` below let pixi skip rebuilding when the source hasn't
+# changed ("cache hit"), so parse/bench/smoke below pay that cost once, not
+# once per run. See README.md's "Why builds feel slow" section.
+build-legislation = { cmd = "mkdir -p bin && mojo build -o bin/legislation_parser src/parsers/legislation_parser.mojo", inputs = [
+  "src/parsers/legislation_parser.mojo",
+], outputs = [
+  "bin/legislation_parser",
+] }
+build-jurisprudence = { cmd = "mkdir -p bin && mojo build -o bin/jurisprudence_parser src/parsers/jurisprudence_parser.mojo", inputs = [
+  "src/parsers/jurisprudence_parser.mojo",
+], outputs = [
+  "bin/jurisprudence_parser",
+] }
+build-doctrine = { cmd = "mkdir -p bin && mojo build -o bin/doctrine_parser src/parsers/doctrine_parser.mojo", inputs = [
+  "src/parsers/doctrine_parser.mojo",
+], outputs = [
+  "bin/doctrine_parser",
+] }
+build-bench-legislation = { cmd = "mkdir -p bin && mojo build -I src/parsers -o bin/bench_legislation_parser src/benchmarks/bench_legislation_parser.mojo", inputs = [
+  "src/parsers/legislation_parser.mojo",
+  "src/benchmarks/bench_legislation_parser.mojo",
+], outputs = [
+  "bin/bench_legislation_parser",
+] }
+build-bench-jurisprudence = { cmd = "mkdir -p bin && mojo build -I src/parsers -o bin/bench_jurisprudence_parser src/benchmarks/bench_jurisprudence_parser.mojo", inputs = [
+  "src/parsers/jurisprudence_parser.mojo",
+  "src/benchmarks/bench_jurisprudence_parser.mojo",
+], outputs = [
+  "bin/bench_jurisprudence_parser",
+] }
+build-bench-doctrine = { cmd = "mkdir -p bin && mojo build -I src/parsers -o bin/bench_doctrine_parser src/benchmarks/bench_doctrine_parser.mojo", inputs = [
+  "src/parsers/doctrine_parser.mojo",
+  "src/benchmarks/bench_doctrine_parser.mojo",
+], outputs = [
+  "bin/bench_doctrine_parser",
+] }
+build = { depends-on = [
+  "build-legislation",
+  "build-jurisprudence",
+  "build-doctrine",
+  "build-bench-legislation",
+  "build-bench-jurisprudence",
+  "build-bench-doctrine",
+] }
+
+parse-legislation = { cmd = "bin/legislation_parser", depends-on = [
+  "build-legislation",
+] }
+parse-jurisprudence = { cmd = "bin/jurisprudence_parser", depends-on = [
+  "build-jurisprudence",
+] }
+parse-doctrine = { cmd = "bin/doctrine_parser", depends-on = [
+  "build-doctrine",
+] }
+
 test-legislation = "mojo run -I src/parsers src/tests/unit/test_legislation_parser.mojo"
 test-jurisprudence = "mojo run -I src/parsers src/tests/unit/test_jurisprudence_parser.mojo"
 test-doctrine = "mojo run -I src/parsers src/tests/unit/test_doctrine_parser.mojo"
@@ -18,10 +74,27 @@ test-doctrine-integration = "mojo run -I src/parsers src/tests/integration/test_
 test = "mojo run -I src/parsers src/tests/unit/test_legislation_parser.mojo && mojo run -I src/parsers src/tests/unit/test_jurisprudence_parser.mojo && mojo run -I src/parsers src/tests/unit/test_doctrine_parser.mojo"
 test-integration = "mojo run -I src/parsers src/tests/integration/test_legislation_integration.mojo && mojo run -I src/parsers src/tests/integration/test_jurisprudence_integration.mojo && mojo run -I src/parsers src/tests/integration/test_doctrine_integration.mojo"
 test-all = "mojo run -I src/parsers src/tests/unit/test_legislation_parser.mojo && mojo run -I src/parsers src/tests/unit/test_jurisprudence_parser.mojo && mojo run -I src/parsers src/tests/unit/test_doctrine_parser.mojo && mojo run -I src/parsers src/tests/integration/test_legislation_integration.mojo && mojo run -I src/parsers src/tests/integration/test_jurisprudence_integration.mojo && mojo run -I src/parsers src/tests/integration/test_doctrine_integration.mojo"
-bench-legislation = "mojo run -I src/parsers src/benchmarks/bench_legislation_parser.mojo"
-bench-jurisprudence = "mojo run -I src/parsers src/benchmarks/bench_jurisprudence_parser.mojo"
-bench-doctrine = "mojo run -I src/parsers src/benchmarks/bench_doctrine_parser.mojo"
-bench = "mojo run -I src/parsers src/benchmarks/bench_legislation_parser.mojo && mojo run -I src/parsers src/benchmarks/bench_jurisprudence_parser.mojo && mojo run -I src/parsers src/benchmarks/bench_doctrine_parser.mojo"
+
+bench-legislation = { cmd = "bin/bench_legislation_parser", depends-on = [
+  "build-bench-legislation",
+] }
+bench-jurisprudence = { cmd = "bin/bench_jurisprudence_parser", depends-on = [
+  "build-bench-jurisprudence",
+] }
+bench-doctrine = { cmd = "bin/bench_doctrine_parser", depends-on = [
+  "build-bench-doctrine",
+] }
+bench = { depends-on = ["bench-legislation", "bench-jurisprudence", "bench-doctrine"] }
+
+smoke-legislation = { cmd = "bin/legislation_parser --smoke src/testdata/legislation", depends-on = [
+  "build-legislation",
+] }
+smoke-jurisprudence = { cmd = "bin/jurisprudence_parser --smoke src/testdata/jurisprudence", depends-on = [
+  "build-jurisprudence",
+] }
+smoke-doctrine = { cmd = "bin/doctrine_parser --smoke src/testdata/doctrine", depends-on = [
+  "build-doctrine",
+] }
 
 [dependencies]
 mojo = ">=1.0.0,<2"

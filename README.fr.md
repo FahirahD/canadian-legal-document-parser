@@ -53,6 +53,8 @@ Les trois analyseurs partagent une seule interface, donc passer de l'un à l'aut
 mojo run <parser>.mojo [file] [--export|--out|-o <path>]
 ```
 
+(les tâches `pixi run parse-*` / `scripts/dev.sh parse` exécutent un binaire pré-compilé `bin/<parser>` plutôt que `mojo run` directement, pour la vitesse — voir [Pourquoi les compilations semblent lentes](#pourquoi-les-compilations-semblent-lentes-et-comment-ce-dépôt-lévite) plus bas — mais l'interface et les options sont identiques dans les deux cas.)
+
 - **Aucun fichier fourni** → analyse un exemple illustratif intégré (pratique pour un test rapide).
 - **`.pdf`** → appelle `pdftotext -layout` (de `poppler-utils`) et normalise les sauts de page ; **`.txt`** → lu directement. Toute autre extension est rejetée plutôt que devinée silencieusement.
 - **`--export`/`--out`/`-o`** écrit le résultat rendu dans un fichier plutôt que sur la sortie standard — voir `output/*.txt` pour des exemples réels produits ainsi.
@@ -103,6 +105,7 @@ src/
     jurisprudence/  Exemples de jugements à analyser — 1 vrai PDF + 7 fixtures .txt synthétiques
     doctrine/       Exemples d'articles à analyser — 1 vrai PDF + 6 fixtures .txt synthétiques
 output/             Exemples de sortie des analyseurs (générés via --export)
+bin/                Binaires compilés des analyseurs/benchmarks (ignorés par git, construits à la demande — voir plus bas)
 scripts/dev.sh      Enveloppe CLI conviviale autour des tâches pixi ci-dessous
 .vscode/            Tâches VS Code pour les mêmes opérations, via la palette de commandes → Run Task
 ```
@@ -142,9 +145,27 @@ Une entrée `.txt` (y compris chaque fixture synthétique sous `src/testdata/`) 
 
 > **Si vous déplacez ou renommez ce dossier de projet**, supprimez `.pixi/` et relancez `pixi install` : l'environnement met en cache certains chemins absolus à l'installation, et un cache périmé après un déplacement se manifeste par un `mojo` incapable de trouver sa propre bibliothèque standard (« unable to locate module 'std' ») ou son runtime de compilation.
 
+### Pourquoi les compilations semblent lentes (et comment ce dépôt l'évite)
+
+`mojo run` recompile un fichier depuis les sources à *chaque invocation* — il n'y a aucun cache de compilation persistant. Pour un analyseur de cette taille, cela représente environ 13 à 16 secondes de pure surcharge de compilation/démarrage avant même qu'un seul octet ne soit analysé, même pour une entrée de 1 Ko, et ce à chaque fois.
+
+Pour éviter de payer ce coût de façon répétée, `pixi.toml` compile chaque analyseur et benchmark une seule fois avec `mojo build` dans un dossier `bin/` ignoré par git, et le suivi `inputs`/`outputs` des tâches pixi évite la recompilation (« `cache hit 🚀` ») tant que le fichier `.mojo` correspondant n'a pas changé. Les tâches `parse-*`, `bench-*` et `smoke-*` dépendent toutes de la tâche `build-*` correspondante, donc cela se fait automatiquement — la première exécution après un clonage récent (ou après avoir modifié un analyseur) paie le coût de compilation une seule fois ; chaque exécution suivante, jusqu'au prochain changement de source, ne fait qu'exécuter le binaire déjà compilé.
+
+Concrètement, exécuter la suite complète de benchmarks trois fois de suite : la première exécution compile les six binaires (~104 s au total) ; chaque exécution suivante les réutilise (~60 s, presque entièrement du vrai travail de benchmark plutôt que de la compilation — comparez la ligne `TOTAL:` propre à chaque analyseur, chronométrée en cours de processus et excluant la compilation/le démarrage, au `GRAND TOTAL` de l'exécution, qui inclut encore la surcharge propre à pixi pour lancer trois binaires distincts).
+
+Vous pouvez déclencher une compilation explicitement sans rien exécuter :
+
+```bash
+scripts/dev.sh build              # les trois analyseurs + leurs benchmarks
+scripts/dev.sh build legislation  # un seul
+```
+
+C'est rarement nécessaire au quotidien puisque `parse`/`bench`/`smoke` le font pour vous, mais c'est utile pour préchauffer le cache à l'avance, ou après avoir changé de version de Mojo.
+
 ### 2. Lancer quelque chose
 
 ```bash
+scripts/dev.sh build                   # compile les binaires des analyseurs + benchmarks dans bin/ (facultatif, voir plus haut)
 scripts/dev.sh parse doctrine src/testdata/doctrine/01_basic_footnotes.txt
 scripts/dev.sh test unit doctrine       # tests unitaires d'un seul analyseur
 scripts/dev.sh test unit               # tests unitaires des trois analyseurs

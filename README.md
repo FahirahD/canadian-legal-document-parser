@@ -53,6 +53,8 @@ All three parsers share one interface, so switching between them is just swappin
 mojo run <parser>.mojo [file] [--export|--out|-o <path>]
 ```
 
+(the `pixi run parse-*` / `scripts/dev.sh parse` tasks run a pre-built `bin/<parser>` binary instead of `mojo run` directly, for speed — see [Why builds feel slow](#why-builds-feel-slow-and-how-this-repo-avoids-it) below — but the interface and flags are identical either way.)
+
 - **No file given** → parses a built-in illustrative sample (handy for a quick smoke test).
 - **`.pdf`** → shells out to `pdftotext -layout` (from `poppler-utils`) and normalizes page breaks; **`.txt`** → read directly. Any other extension is rejected rather than silently guessed at.
 - **`--export`/`--out`/`-o`** writes the rendered output to a file instead of stdout — see `output/*.txt` for real examples produced this way.
@@ -103,6 +105,7 @@ src/
     jurisprudence/  Sample judgments to parse — 1 real PDF + 7 synthetic .txt fixtures
     doctrine/       Sample articles to parse — 1 real PDF + 6 synthetic .txt fixtures
 output/             Example parser output (generated via --export)
+bin/                Compiled parser/benchmark binaries (gitignored, built on demand — see below)
 scripts/dev.sh      Friendly CLI wrapper around the pixi tasks below
 .vscode/            VS Code tasks for the same operations, via Command Palette → Run Task
 ```
@@ -142,9 +145,27 @@ brew install poppler
 
 > **If you ever move or rename this project folder**, delete `.pixi/` and re-run `pixi install`: the environment caches some absolute paths at install time, and a stale cache after a move surfaces as `mojo` failing to find its own standard library (`unable to locate module 'std'`) or compiler runtime.
 
+### Why builds feel slow (and how this repo avoids it)
+
+`mojo run` recompiles a file from source on *every single invocation* — there's no persistent compile cache. For a parser this size that's roughly 13–16 seconds of pure compile/startup overhead before a single byte gets parsed, even for a 1KB input, every time.
+
+To avoid paying that repeatedly, `pixi.toml` builds each parser and benchmark once with `mojo build` into a gitignored `bin/` directory, and pixi's task `inputs`/`outputs` tracking skips the rebuild ("`cache hit 🚀`") whenever the relevant `.mojo` source hasn't changed since. `parse-*`, `bench-*`, and `smoke-*` all depend on the matching `build-*` task, so this happens automatically — the first run after a fresh checkout (or after you edit a parser) pays the compile cost once; every run after that, until the source changes again, just executes the already-compiled binary.
+
+Concretely, running the full benchmark suite three times in a row: the first run compiles all six binaries (~104s total); every run after that reuses them (~60s, almost entirely genuine benchmark work rather than compilation — compare each parser's own `TOTAL:` line, which is timed in-process and excludes compile/startup, against the run's `GRAND TOTAL`, which still includes pixi's own per-invocation overhead for launching three separate binaries).
+
+You can trigger a build explicitly without running anything:
+
+```bash
+scripts/dev.sh build              # all three parsers + their benchmarks
+scripts/dev.sh build legislation  # just one
+```
+
+This is rarely necessary day-to-day since `parse`/`bench`/`smoke` do it for you, but it's useful to warm the cache ahead of time, or after switching Mojo versions.
+
 ### 2. Run something
 
 ```bash
+scripts/dev.sh build                   # compile parser + benchmark binaries into bin/ (optional, see above)
 scripts/dev.sh parse doctrine src/testdata/doctrine/01_basic_footnotes.txt
 scripts/dev.sh test unit doctrine       # one parser's unit tests
 scripts/dev.sh test unit               # all three parsers' unit tests
