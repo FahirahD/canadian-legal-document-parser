@@ -76,37 +76,25 @@ from std.time import perf_counter_ns
 # =============================================================================
 
 
-def is_digit(c: String) -> Bool:
-    return c >= "0" and c <= "9"
-
-
-def is_lower(c: String) -> Bool:
-    return c >= "a" and c <= "z"
-
-
-def is_upper(c: String) -> Bool:
-    return c >= "A" and c <= "Z"
-
-
-def is_space(c: String) -> Bool:
-    return c == " " or c == "\t"
-
-
-# Byte-level twins of is_digit/is_space, for Cursor's hot character-
-# classification loops (skip_spaces/parse_digits): every character these
-# ever classify is single-byte ASCII, so comparing the raw byte directly
-# -- instead of going through peek()'s per-character String slice just to
-# hand it to the String-based predicate -- avoids an allocation per
-# character scanned. Profiled at ~9.5x faster than the peek()+String-
-# predicate pattern for this exact shape of loop. The String-based
-# predicates above stay: they're still used elsewhere on values already
-# extracted as a String.
+# Character-classification predicates, byte-level throughout: every
+# character these ever classify (digits, ASCII letters, whitespace) is
+# single-byte, so comparing the raw byte directly avoids an allocation
+# per character scanned -- profiled at ~9.5x faster than extracting each
+# character as its own String first (Cursor.peek()) and comparing that.
 def is_digit_byte(b: UInt8) -> Bool:
     return b >= UInt8(ord("0")) and b <= UInt8(ord("9"))
 
 
 def is_space_byte(b: UInt8) -> Bool:
     return b == UInt8(ord(" ")) or b == UInt8(ord("\t"))
+
+
+def is_lower_byte(b: UInt8) -> Bool:
+    return b >= UInt8(ord("a")) and b <= UInt8(ord("z"))
+
+
+def is_upper_byte(b: UInt8) -> Bool:
+    return b >= UInt8(ord("A")) and b <= UInt8(ord("Z"))
 
 
 # The exact set `String.strip()` trims (confirmed empirically: space, tab,
@@ -123,35 +111,47 @@ def is_ascii_ws_byte(b: UInt8) -> Bool:
     )
 
 
+# Scans raw bytes directly rather than decoding the whole line into a
+# List[String] of codepoints (to_codepoints) first: a byte >= 0x80 (the
+# start/continuation of a multi-byte UTF-8 character) never falls in the
+# ASCII a-z/A-Z ranges either, so is_lower_byte/is_upper_byte give
+# identical results to the codepoint-level checks this replaced, over
+# French-accented text included, without the per-character allocation.
 def is_all_caps_heading(line: String) -> Bool:
-    var chars = to_codepoints(String(line.strip()))
-    if len(chars) == 0:
+    var trimmed = String(line.strip())
+    var bytes = trimmed.as_bytes()
+    var n = trimmed.byte_length()
+    if n == 0:
         return False
-    var first = chars[0]
-    if is_digit(first) or first == "[" or first == "(":
+    var first_byte = bytes[0]
+    if is_digit_byte(first_byte) or first_byte == UInt8(ord("[")) or first_byte == UInt8(ord("(")):
         return False
     var has_upper = False
-    for ch in chars:
-        if is_lower(ch):
+    var i = 0
+    while i < n:
+        var b = bytes[i]
+        if is_lower_byte(b):
             return False
-        if is_upper(ch):
+        if is_upper_byte(b):
             has_upper = True
+        i += 1
     return has_upper
 
 
-comptime ALPHABET: StaticString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-
+# `c` is always a single uppercase letter by construction (it comes from
+# `expected_letter`, which only ever holds a value produced by this same
+# function or the "A" starting point) -- computed via byte arithmetic
+# instead of decoding a 26-letter alphabet string into a List[String] and
+# scanning it on every call.
 def next_letter(c: String) raises -> String:
-    var alpha = to_codepoints(String(ALPHABET))
-    var i = 0
-    while i < len(alpha):
-        if alpha[i] == c:
-            if i + 1 < len(alpha):
-                return alpha[i + 1]
-            raise Error("no letter after Z")
-        i += 1
-    raise Error("not a letter: " + c)
+    if c.byte_length() != 1:
+        raise Error("not a letter: " + c)
+    var b = c.as_bytes()[0]
+    if b < UInt8(ord("A")) or b > UInt8(ord("Z")):
+        raise Error("not a letter: " + c)
+    if b == UInt8(ord("Z")):
+        raise Error("no letter after Z")
+    return String(chr(Int(b) + 1))
 
 
 # Covers 1-89, comfortably more top-level headings than any real judgment has.
@@ -245,13 +245,6 @@ struct Judgment(Copyable, Movable, Writable):
 # -----------------------------------------------------------------------
 # PEG cursor / parser
 # -----------------------------------------------------------------------
-
-
-def to_codepoints(text: String) -> List[String]:
-    var chars: List[String] = []
-    for cp in text.codepoint_slices():
-        chars.append(String(cp))
-    return chars^
 
 
 struct Cursor(Copyable, Movable):

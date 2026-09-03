@@ -183,6 +183,27 @@ Or call the underlying `pixi` tasks directly — `pixi task list` shows all of t
 
 Open the folder, install the recommended [Mojo extension](https://marketplace.visualstudio.com/items?itemName=modular-mojotools.vscode-mojo) when prompted, then **Command Palette → "Tasks: Run Task"** for the same list (test/bench/smoke per parser, or "Test: all"). The "Parse" tasks prompt for a file path, defaulting to the matching sample in `src/testdata/<type>/`.
 
+## Runtime performance
+
+`Cursor` (the shared low-level scanner behind all three grammars) used to pre-decode the whole input into a `List[String]` of one-character `String`s and rebuild every token/line by repeatedly `+=`-ing them back together — safe for the bilingual, French-accented text this project targets, but it meant a heap allocation for every character in the document, twice over, before any actual grammar logic ran. It's since been rewritten to track a byte offset into the original `String` directly (still fully UTF-8-safe — see the comments on `Cursor._char_width()` in each parser for why), and a handful of helper functions that had the same "decode a whole line just to look at its first character" pattern (`looks_like_heading`, `is_all_caps_heading`, `next_letter`) got the same treatment.
+
+Real effect, measured with `scripts/dev.sh bench` (in-process `TOTAL:` time, i.e. excluding Mojo's own compile/startup — see [Why builds feel slow](#why-builds-feel-slow-and-how-this-repo-avoids-it) above):
+
+| parser | before | after | speedup |
+|---|---|---|---|
+| legislation | 7.80s | ~1.0s | ~7.8x |
+| jurisprudence | 16.30s | ~2.1s | ~7.8x |
+| doctrine | 19.81s | ~1.8s | ~11x |
+
+Reproduce it yourself:
+
+```bash
+scripts/dev.sh bench                   # all three, prints each parser's own TOTAL: line
+scripts/dev.sh bench legislation       # just one
+```
+
+Each `bench_*.mojo` benchmark reports `ns/section` (or `ns/paragraph`/`ns/footnote`) and MB/s throughput alongside the total, so a regression in a specific grammar rule shows up as a throughput drop on the relevant synthetic-scaling benchmark rather than just a slower overall number.
+
 ## What could be done later
 
 - **Structured export formats.** Output today is pretty-printed text; a `--format json` (or similar) would make the parsed AST easy to feed into other tooling.

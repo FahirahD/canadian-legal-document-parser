@@ -50,20 +50,8 @@ def is_digit(c: String) -> Bool:
     return c >= "0" and c <= "9"
 
 
-def is_lower(c: String) -> Bool:
-    return c >= "a" and c <= "z"
-
-
 def is_upper(c: String) -> Bool:
     return c >= "A" and c <= "Z"
-
-
-def is_space(c: String) -> Bool:
-    return c == " " or c == "\t"
-
-
-def is_roman_char(c: String) -> Bool:
-    return c == "i" or c == "v" or c == "x" or c == "l" or c == "c" or c == "d" or c == "m"
 
 
 # Byte-level twins of the predicates above, for Cursor's hot character-
@@ -117,43 +105,23 @@ def is_ascii_ws_byte(b: UInt8) -> Bool:
     )
 
 
-def digit_value(c: String) -> Int:
-    if c == "0":
-        return 0
-    if c == "1":
-        return 1
-    if c == "2":
-        return 2
-    if c == "3":
-        return 3
-    if c == "4":
-        return 4
-    if c == "5":
-        return 5
-    if c == "6":
-        return 6
-    if c == "7":
-        return 7
-    if c == "8":
-        return 8
-    return 9
-
-
 # The leading whole-number part of a section number ("3.1" -> 3, "101" -> 101).
+# Scans bytes directly rather than decoding `number` into a List[String] of
+# codepoints first (to_codepoints) -- section numbers are always plain
+# ASCII digits by construction (parse_digits only ever returns "0"-"9"),
+# so byte arithmetic (subtracting the ASCII value of "0") gives the exact
+# same result as the old digit_value(String) lookup, without the decode.
 def whole_number_of(number: String) -> Int:
     var result = 0
-    for ch in to_codepoints(number):
-        if ch == ".":
+    var bytes = number.as_bytes()
+    var i = 0
+    var n = number.byte_length()
+    while i < n:
+        if bytes[i] == UInt8(ord(".")):
             break
-        result = result * 10 + digit_value(ch)
+        result = result * 10 + Int(bytes[i] - UInt8(ord("0")))
+        i += 1
     return result
-
-
-def to_codepoints(text: String) -> List[String]:
-    var chars: List[String] = []
-    for cp in text.codepoint_slices():
-        chars.append(String(cp))
-    return chars^
 
 
 # A real published statute PDF (as opposed to the plain-text convention
@@ -170,17 +138,26 @@ def to_codepoints(text: String) -> List[String]:
 # a deliberate simplification -- it loses the distinction between "this is
 # a group heading" and "this is this provision's own note" for real PDFs,
 # but loses no actual text, which matters more.
+# Only the *first* character of the line actually matters here, so this
+# reads its leading byte directly instead of decoding the whole line into
+# a List[String] of codepoints (to_codepoints) just to look at element 0
+# -- the same per-character-allocation anti-pattern Cursor itself used to
+# have, just missed here since this operates on an already-extracted
+# String rather than Cursor's own byte offset. A byte >= 0x80 (the start
+# of a multi-byte UTF-8 character) can never be an ASCII digit, "(", or
+# uppercase A-Z either, so is_digit_byte/is_upper_byte correctly fall
+# through to False/True on non-ASCII leading characters without needing
+# to actually decode them.
 def looks_like_heading(line: String) -> Bool:
     var trimmed = String(line.strip())
     if trimmed.startswith("Marginal note:"):
         return False
-    var chars = to_codepoints(trimmed)
-    if len(chars) == 0:
+    if trimmed.byte_length() == 0:
         return False
-    var first = chars[0]
-    if is_digit(first) or first == "(":
+    var first_byte = trimmed.as_bytes()[0]
+    if is_digit_byte(first_byte) or first_byte == UInt8(ord("(")):
         return False
-    return is_upper(first)
+    return is_upper_byte(first_byte)
 
 
 # -----------------------------------------------------------------------

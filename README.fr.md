@@ -183,6 +183,27 @@ Ou appelez directement les tâches `pixi` sous-jacentes — `pixi task list` les
 
 Ouvrez le dossier, installez l'[extension Mojo](https://marketplace.visualstudio.com/items?itemName=modular-mojotools.vscode-mojo) recommandée lorsqu'elle est proposée, puis **Palette de commandes → « Tasks: Run Task »** pour la même liste (test/bench/smoke par analyseur, ou « Test: all »). Les tâches « Parse » demandent un chemin de fichier, avec par défaut l'exemple correspondant dans `src/testdata/<type>/`.
 
+## Performance à l'exécution
+
+`Cursor` (le scanner de bas niveau partagé par les trois grammaires) décodait auparavant tout le texte d'entrée en une `List[String]` de `String` d'un seul caractère, puis reconstruisait chaque jeton/ligne en les concaténant à répétition avec `+=` — sûr pour le texte bilingue et accentué en français visé par ce projet, mais cela signifiait une allocation mémoire pour chaque caractère du document, et ce deux fois, avant même que la logique de grammaire ne s'exécute. Il a depuis été réécrit pour suivre un décalage d'octet directement dans la `String` d'origine (toujours entièrement sûr pour l'UTF-8 — voir les commentaires sur `Cursor._char_width()` dans chaque analyseur pour comprendre pourquoi), et quelques fonctions auxiliaires qui avaient le même travers (« décoder toute une ligne juste pour regarder son premier caractère ») ont reçu le même traitement (`looks_like_heading`, `is_all_caps_heading`, `next_letter`).
+
+Effet réel, mesuré avec `scripts/dev.sh bench` (temps `TOTAL:` mesuré en cours de processus, donc excluant la compilation/le démarrage de Mojo — voir [Pourquoi les compilations semblent lentes](#pourquoi-les-compilations-semblent-lentes-et-comment-ce-dépôt-lévite) plus haut) :
+
+| analyseur | avant | après | accélération |
+|---|---|---|---|
+| législation | 7,80 s | ~1,0 s | ~7,8x |
+| jurisprudence | 16,30 s | ~2,1 s | ~7,8x |
+| doctrine | 19,81 s | ~1,8 s | ~11x |
+
+Pour reproduire vous-même :
+
+```bash
+scripts/dev.sh bench                   # les trois, affiche la ligne TOTAL: de chaque analyseur
+scripts/dev.sh bench legislation       # un seul
+```
+
+Chaque benchmark `bench_*.mojo` rapporte des ns/article (ou ns/paragraphe, ns/note de bas de page) et un débit en Mo/s en plus du total, donc une régression dans une règle de grammaire précise se manifeste par une baisse de débit sur le benchmark synthétique correspondant plutôt que par un simple ralentissement global.
+
 ## Pistes pour la suite
 
 - **Formats d'export structurés.** La sortie actuelle est du texte mis en forme ; un `--format json` (ou similaire) permettrait d'alimenter facilement l'AST analysé dans d'autres outils.
