@@ -1,0 +1,129 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Test: all",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["test", "all"],
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: unit (all parsers)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["test", "unit"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: unit — legislation",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["test", "unit", "legislation"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: unit — jurisprudence",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["test", "unit", "jurisprudence"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: unit — doctrine",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["test", "unit", "doctrine"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: integration (all parsers)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["test", "integration"],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Bench: all",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["bench"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Bench: legislation",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["bench", "legislation"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Bench: jurisprudence",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["bench", "jurisprudence"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Bench: doctrine",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["bench", "doctrine"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Parse: legislation (prompts for file)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["parse", "legislation", "${input:legislationFile}"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Parse: jurisprudence (prompts for file)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["parse", "jurisprudence", "${input:jurisprudenceFile}"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Parse: doctrine (prompts for file)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/dev.sh",
+      "args": ["parse", "doctrine", "${input:doctrineFile}"],
+      "group": "build",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "legislationFile",
+      "type": "promptString",
+      "description": "Path to a legislation document to parse",
+      "default": "src/testdata/access_to_information_act.pdf"
+    },
+    {
+      "id": "jurisprudenceFile",
+      "type": "promptString",
+      "description": "Path to a jurisprudence document to parse",
+      "default": "src/testdata/poonian_v_bc_securities_2024scc28.pdf"
+    },
+    {
+      "id": "doctrineFile",
+      "type": "promptString",
+      "description": "Path to a doctrine document to parse",
+      "default": "src/testdata/mlj_readability_deficits.pdf"
+    }
+  ]
+}
