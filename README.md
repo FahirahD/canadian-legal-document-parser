@@ -1,6 +1,10 @@
 # Canadian Legal Document Parser
 
+*[Lire en français](README.fr.md)*
+
 Hand-written [PEG](https://en.wikipedia.org/wiki/Parsing_expression_grammar) parsers, in [Mojo](https://www.modular.com/mojo), that turn real Canadian (and Quebec) legal documents into structured data: federal **legislation**, court **jurisprudence**, and academic **doctrine**. Each one is built against the actual formatting conventions of real, published PDFs — not a tidy hand-written toy example — and is bilingual (English/French) where the source material is.
+
+Mojo is built primarily for high-performance numerical and AI workloads, so this project also serves as a proof of concept: it shows that Mojo can just as well handle a real-world, text-heavy parsing problem — hand-written recursive-descent grammars over messy, bilingual, PDF-sourced legal text — end to end, at production quality.
 
 ## Why three parsers, not one
 
@@ -122,6 +126,8 @@ This project doesn't need a separate Mojo install: [`pixi`](https://pixi.sh) is 
    ```bash
    pixi run mojo --version
    ```
+
+> **Windows (via WSL2):** Mojo has no native Windows build, and this repo's `pixi.toml` only declares `platforms = ["linux-64"]`, so `pixi install` will fail on plain Windows (PowerShell/cmd). Install [WSL2](https://learn.microsoft.com/windows/wsl/install) with an Ubuntu distro, then run the steps above (`pixi install`, `scripts/dev.sh`, etc.) from inside the WSL shell — everything works there exactly as on native Linux.
 
 For PDF input specifically (all three parsers accept `.pdf` or `.txt`), you'll also need `pdftotext` — from `poppler-utils` — on your system `PATH`:
 
