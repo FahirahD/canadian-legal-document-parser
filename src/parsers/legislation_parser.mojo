@@ -50,10 +50,6 @@ def is_digit(c: String) -> Bool:
     return c >= "0" and c <= "9"
 
 
-def is_upper(c: String) -> Bool:
-    return c >= "A" and c <= "Z"
-
-
 # Byte-level twins of the predicates above, for Cursor's hot character-
 # classification loops (skip_spaces/parse_digits/parse_lower_letters/
 # parse_roman): every character these ever classify is single-byte ASCII,
@@ -309,14 +305,6 @@ struct Cursor(Copyable, Movable):
             return 4
         return 1
 
-    def peek(self) -> String:
-        if self.at_end():
-            return ""
-        var end = self.pos + self._char_width()
-        if end > self.byte_len:
-            end = self.byte_len
-        return String(self.text[byte=self.pos:end])
-
     def advance(mut self):
         if self.at_end():
             return
@@ -369,10 +357,17 @@ struct Cursor(Copyable, Movable):
             i += 1
         self.pos += n
 
+    # `\n` is single-byte ASCII, so comparing the raw byte at self.pos
+    # directly -- rather than via self.peek() -- gives identical results
+    # (a multi-byte UTF-8 lead/continuation byte is always >= 0x80, so it
+    # can never equal it) without peek()'s per-call String allocation.
+    # peek() itself is measured at ~9-10% of total real-document parse
+    # time when called from one-off comparisons like this one throughout
+    # the grammar rules (not just the scanning loops fixed earlier).
     def match_newline(mut self) raises:
         if self.at_end():
             return
-        if self.peek() == "\n":
+        if self.text.as_bytes()[self.pos] == UInt8(ord("\n")):
             self.advance()
         else:
             raise Error("expected newline")
@@ -386,7 +381,7 @@ struct Cursor(Copyable, Movable):
         while True:
             var cp = self.checkpoint()
             self.skip_spaces()
-            if not self.at_end() and self.peek() == "\n":
+            if not self.at_end() and self.text.as_bytes()[self.pos] == UInt8(ord("\n")):
                 self.advance()
             else:
                 self.reset(cp)
@@ -503,7 +498,7 @@ struct Cursor(Copyable, Movable):
         # confirmed, not hypothetical: without this check, the real Access
         # to Information Act's own citation lines were misread as bogus
         # new sections ("1980", "2019", ...).
-        if self.at_end() or self.peek() != " ":
+        if self.at_end() or self.text.as_bytes()[self.pos] != UInt8(ord(" ")):
             raise Error("not a section number: no space after digits")
         # A real section's body always opens with a capital letter (a
         # fresh, properly capitalized sentence) or "(" (a subsection with
@@ -518,7 +513,10 @@ struct Cursor(Copyable, Movable):
         # whole rest of the Act.
         var cp2 = self.checkpoint()
         self.advance()
-        var ok = not self.at_end() and (self.peek() == "(" or is_upper(self.peek()))
+        var ok = False
+        if not self.at_end():
+            var b = self.text.as_bytes()[self.pos]
+            ok = b == UInt8(ord("(")) or is_upper_byte(b)
         self.reset(cp2)
         if not ok:
             raise Error("not a section number: not followed by a capitalized clause or subsection marker")
@@ -592,7 +590,7 @@ struct Cursor(Copyable, Movable):
     # `parse_text_to_eol` alone only ever grabbed the first physical line.
     def parse_text_block(mut self) raises -> String:
         var result = self.parse_text_to_eol()
-        while not self.at_end() and self.peek() != "\n" and not self.looking_at_new_clause():
+        while not self.at_end() and self.text.as_bytes()[self.pos] != UInt8(ord("\n")) and not self.looking_at_new_clause():
             var cont = self.parse_text_to_eol()
             if cont.byte_length() > 0:
                 result += " " + cont
